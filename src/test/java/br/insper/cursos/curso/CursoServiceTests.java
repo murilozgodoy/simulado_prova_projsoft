@@ -3,12 +3,15 @@ package br.insper.cursos.curso;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 public class CursoServiceTests {
@@ -78,5 +81,29 @@ public class CursoServiceTests {
         Assertions.assertNull(retorno.getId());
         Assertions.assertFalse(retorno.getDeletado());
         Assertions.assertEquals("Docker", retorno.getNome());
+    }
+
+    @Test
+    public void testDeletarCursoComSucesso() {
+        Curso curso = criarCurso(1L, "Java");
+        Mockito.when(cursoRepository.findById(1L)).thenReturn(Optional.of(curso));
+
+        cursoService.deletar(1L);
+
+        ArgumentCaptor<Curso> captor = ArgumentCaptor.forClass(Curso.class);
+        Mockito.verify(cursoRepository, Mockito.times(1)).save(captor.capture());
+        Assertions.assertTrue(captor.getValue().getDeletado());
+    }
+
+    @Test
+    public void testDeletarCursoQuandoNaoExiste() {
+        Mockito.when(cursoRepository.findById(50L)).thenReturn(Optional.empty());
+
+        ResponseStatusException excecao = Assertions.assertThrows(
+                ResponseStatusException.class,
+                () -> cursoService.deletar(50L));
+
+        Assertions.assertEquals(404, excecao.getStatusCode().value());
+        Mockito.verify(cursoRepository, Mockito.never()).save(Mockito.any());
     }
 }

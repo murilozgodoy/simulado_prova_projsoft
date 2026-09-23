@@ -15,6 +15,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Optional;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -97,5 +100,22 @@ public class CursoControllerTests {
         mockMvc.perform(get("/cursos").param("nome", "Java"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    public void testDeleteCursoEhLogico() throws Exception {
+        Curso curso = salvarCurso("Curso para deletar", false);
+
+        mockMvc.perform(delete("/cursos/" + curso.getId()))
+                .andExpect(status().isNoContent());
+
+        // sumiu da listagem
+        mockMvc.perform(get("/cursos"))
+                .andExpect(jsonPath("$.length()").value(0));
+
+        // mas continua no banco com deletado = true
+        Optional<Curso> noBanco = cursoRepository.findById(curso.getId());
+        Assertions.assertTrue(noBanco.isPresent());
+        Assertions.assertTrue(noBanco.get().getDeletado());
     }
 }
